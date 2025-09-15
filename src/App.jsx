@@ -4,6 +4,44 @@ import { useSelector, useDispatch } from 'react-redux';
 import { recipesFetch } from './redux/recipeces/recipeSlice';
 import { recipeDetailesFetch } from './redux/recipeces/recipeDetailes';
 
+const popularIngredients = [
+  { name: 'chicken', icon: '🐔' },
+  { name: 'beef', icon: '🥩' },
+  { name: 'salmon', icon: '🐟' },
+  { name: 'pasta', icon: '🍝' },
+  { name: 'rice', icon: '🍚' },
+  { name: 'eggs', icon: '🥚' },
+  { name: 'tomato', icon: '🍅' },
+  { name: 'cheese', icon: '🧀' },
+  { name: 'mushroom', icon: '🍄' },
+  { name: 'onion', icon: '🧅' },
+  { name: 'garlic', icon: '🧄' },
+  { name: 'potato', icon: '🥔' },
+];
+
+
+const moodSuggestions = {
+  comfort: {
+    ingredients: ['chicken', 'pasta', 'cheese', 'potato'],
+    description: 'Cozy meals after a long day',
+    icon: '🤗',
+  },
+  healthy: {
+    ingredients: ['salmon', 'chicken', 'spinach', 'broccoli'],
+    description: 'Nutritious options to fuel your day',
+    icon: '💚',
+  },
+  quick: {
+    ingredients: ['eggs', 'pasta', 'chicken', 'rice'],
+    description: '30 minutes or less',
+    icon: '⚡',
+  },
+  exotic: {
+    ingredients: ['curry', 'beef', 'lamb', 'seafood'],
+    description: 'Adventure on your plate',
+    icon: '🌍',
+  },
+};
 const TaylorRecipeApp = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [recipes, setRecipes] = useState([]);
@@ -13,15 +51,29 @@ const TaylorRecipeApp = () => {
   const [favorites, setFavorites] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
+  const [mealId, setMeadId] = useState(null)
   const dispatch = useDispatch();
 
   const { recipeData, loading, error } = useSelector((state) => state.recipes);
-
-  console.log(selectedRecipe, 'selectedRecipe');
+  const { singleRecipe } = useSelector((state) => state.singleRecipeStore)
 
   useEffect(() => {
     dispatch(recipesFetch(searchTerm));
   }, [searchTerm, timeFilter, moodFilter, dispatch]);
+
+  useEffect(() => {
+    if (mealId)
+      setSelectedRecipe(singleRecipe)
+  }, [singleRecipe, mealId])
+
+  useEffect(() => {
+    if (mealId) {
+      dispatch(recipeDetailesFetch(mealId));
+    } else {
+      setSelectedRecipe(null)
+    }
+  }, [mealId])
+
 
   useEffect(() => {
     if (recipeData && Array.isArray(recipeData)) {
@@ -36,56 +88,9 @@ const TaylorRecipeApp = () => {
     setSearchHistory([]);
     dispatch(recipesFetch(''));
   };
-
-  const popularIngredients = [
-    { name: 'chicken', icon: '🐔' },
-    { name: 'beef', icon: '🥩' },
-    { name: 'salmon', icon: '🐟' },
-    { name: 'pasta', icon: '🍝' },
-    { name: 'rice', icon: '🍚' },
-    { name: 'eggs', icon: '🥚' },
-    { name: 'tomato', icon: '🍅' },
-    { name: 'cheese', icon: '🧀' },
-    { name: 'mushroom', icon: '🍄' },
-    { name: 'onion', icon: '🧅' },
-    { name: 'garlic', icon: '🧄' },
-    { name: 'potato', icon: '🥔' },
-  ];
-
-  const moodSuggestions = {
-    comfort: {
-      ingredients: ['chicken', 'pasta', 'cheese', 'potato'],
-      description: 'Cozy meals after a long day',
-      icon: '🤗',
-    },
-    healthy: {
-      ingredients: ['salmon', 'chicken', 'spinach', 'broccoli'],
-      description: 'Nutritious options to fuel your day',
-      icon: '💚',
-    },
-    quick: {
-      ingredients: ['eggs', 'pasta', 'chicken', 'rice'],
-      description: '30 minutes or less',
-      icon: '⚡',
-    },
-    exotic: {
-      ingredients: ['curry', 'beef', 'lamb', 'seafood'],
-      description: 'Adventure on your plate',
-      icon: '🌍',
-    },
-  };
-
-  const getRecipeDetails = async (mealId) => {
-    await dispatch(recipeDetailesFetch(mealId));
-    try {
-      const response = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealId}`);
-      const data = await response.json();
-      if (data.meals && data.meals[0]) {
-        setSelectedRecipe(data.meals[0]);
-      }
-    } catch (err) {
-      console.error('Error fetching recipe details:', err);
-    }
+   
+  const getRecipeDetails = (mealId) => {
+    setMeadId(mealId)
   };
 
   const extractIngredients = (recipe) => {
@@ -104,15 +109,15 @@ const TaylorRecipeApp = () => {
   };
 
   const getEstimatedTime = (recipe) => {
-    const name = recipe.strMeal.toLowerCase();
-    const instructions = recipe.strInstructions?.toLowerCase() || '';
-    if (name.includes('quick') || name.includes('easy') || name.includes('simple') || instructions.includes('5 min') || instructions.includes('10 min')) {
+    const name = recipe?.strMeal?.toLowerCase();
+    if (name?.includes('quick') || name?.includes('easy') || name?.includes('simple')) {
       return '15-20 min';
     }
-    if (name.includes('slow') || name.includes('braised') || name.includes('roast') || instructions.includes('hour') || instructions.includes('bake')) {
+    if (name?.includes('slow') || name?.includes('braised') || name?.includes('roast')
+    ) {
       return '2-3 hours';
     }
-    if (name.includes('grilled') || name.includes('fried') || name.includes('stir')) {
+    if (name?.includes('grilled') || name?.includes('fried') || name?.includes('stir')) {
       return '20-30 min';
     }
     return '30-45 min';
@@ -120,23 +125,17 @@ const TaylorRecipeApp = () => {
 
   const getDifficulty = (recipe) => {
     const instructions = recipe.strInstructions?.toLowerCase() || '';
+    console.log(instructions, 'instructions')
     const ingredientCount = extractIngredients(recipe).length;
-    if (ingredientCount <= 5 && (instructions.includes('simple') || instructions.includes('easy'))) {
+    if (ingredientCount <= 2 && (instructions.includes('simple') || instructions.includes('easy'))) {
       return 'Easy';
     }
-    if (ingredientCount > 10 || instructions.includes('marinate') || instructions.includes('rest')) {
+    if (ingredientCount > 5 || instructions.includes('marinate') || instructions.includes('rest')) {
       return 'Hard';
     }
     return 'Medium';
   };
 
-  const getServings = (recipe) => {
-    const instructions = recipe.strInstructions?.toLowerCase() || '';
-    if (instructions.includes('serves 2') || instructions.includes('for 2')) return '2';
-    if (instructions.includes('serves 6') || instructions.includes('for 6')) return '6';
-    if (instructions.includes('serves 8') || instructions.includes('for 8')) return '8';
-    return '4';
-  };
 
   const handleSearch = () => {
     if (searchTerm.trim()) {
@@ -189,11 +188,11 @@ const TaylorRecipeApp = () => {
     return true;
   });
 
-  console.log(filteredRecipes, 'filteredRecipes');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
-      <header className="bg-white shadow-lg border-b border-orange-100">
+      {/* top nav bar */}
+      <header className="bg-white shadow-lg border-b border-orange-100 sticky top-0 z-1">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center space-x-3">
@@ -225,8 +224,10 @@ const TaylorRecipeApp = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col lg:grid lg:grid-cols-4 gap-8 min-h-[calc(100vh-0rem)]">
+          {/* said nav bar  */}
           <aside className={`lg:col-span-1 ${showFilters ? 'block' : 'hidden lg:block'} bg-white rounded-xl shadow-sm p-6 max-h-[calc(100vh-0rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-orange-500 scrollbar-track-gray-100`}>
             <div className="space-y-6">
+              {/* said nav bar top */}
               <div>
                 <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                   <Star className="w-5 h-5 mr-2 text-yellow-500" />
@@ -238,8 +239,8 @@ const TaylorRecipeApp = () => {
                       key={mood}
                       onClick={() => handleMoodSearch(mood)}
                       className={`w-full p-3 rounded-lg border text-left transition-all ${moodFilter === mood
-                          ? 'bg-orange-500 text-white border-orange-500 shadow-md'
-                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-orange-50 hover:border-orange-200'
+                        ? 'bg-orange-500 text-white border-orange-500 shadow-md'
+                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-orange-50 hover:border-orange-200'
                         }`}
                     >
                       <div className="flex items-center">
@@ -254,6 +255,7 @@ const TaylorRecipeApp = () => {
                 </div>
               </div>
 
+              {/* said nav bar middel */}
               <div>
                 <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                   <Clock className="w-5 h-5 mr-2 text-blue-500" />
@@ -284,6 +286,7 @@ const TaylorRecipeApp = () => {
                 </div>
               </div>
 
+              {/* said nav bar buttom quick search  */}
               <div>
                 <h3 className="font-semibold text-gray-900 mb-4">Quick Ingredient Search</h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -300,6 +303,8 @@ const TaylorRecipeApp = () => {
                 </div>
               </div>
 
+              {/* clear button container */}
+
               {(searchTerm || timeFilter !== 'all' || moodFilter !== 'all') && (
                 <div>
                   <button
@@ -311,6 +316,7 @@ const TaylorRecipeApp = () => {
                 </div>
               )}
 
+              {/* user sreach history  */}
               {searchHistory.length > 0 && (
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-4">Recent Searches</h3>
@@ -327,6 +333,8 @@ const TaylorRecipeApp = () => {
                   </div>
                 </div>
               )}
+
+              {/* user favorites cards */}
 
               {favorites.length > 0 && (
                 <div>
@@ -356,6 +364,8 @@ const TaylorRecipeApp = () => {
 
           <main className="lg:col-span-3">
             <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+
+              {/* right said search bar */}
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -383,7 +393,7 @@ const TaylorRecipeApp = () => {
                   )}
                 </button>
               </div>
-
+              {/* example simgple ingredient container */}
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className="text-sm text-gray-600 mr-2">Try:</span>
                 {['chicken', 'pasta', 'salmon', 'eggs'].map((ingredient) => (
@@ -407,6 +417,7 @@ const TaylorRecipeApp = () => {
               </div>
             )}
 
+            {/* filter recipes data  */}
             {filteredRecipes.length > 0 && (
               <div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
@@ -439,9 +450,7 @@ const TaylorRecipeApp = () => {
                         >
                           <Heart className={`w-4 h-4 ${isFavorite(recipe) ? 'fill-current' : ''}`} />
                         </button>
-                        <div className="absolute bottom-3 left-3">
-                          <span className="bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded-full">{getDifficulty(recipe)}</span>
-                        </div>
+
                       </div>
                       <div className="p-4">
                         <h3 className="font-bold text-gray-900 mb-2 text-lg">{recipe.strMeal}</h3>
@@ -452,7 +461,7 @@ const TaylorRecipeApp = () => {
                           </div>
                           <div className="flex items-center">
                             <Users className="w-4 h-4 mr-1 text-green-500" />
-                            Serves {getServings(recipe)}
+                            Serves 4
                           </div>
                         </div>
                         <button
@@ -467,6 +476,8 @@ const TaylorRecipeApp = () => {
                 </div>
               </div>
             )}
+
+            {/* shart search ingredient container  */}
 
             {!loading && filteredRecipes.length === 0 && !error && (
               <div className="text-center py-16">
@@ -495,7 +506,10 @@ const TaylorRecipeApp = () => {
         </div>
       </div>
 
-      {selectedRecipe && (
+
+      {/* single recipe full detailes  */}
+
+      {selectedRecipe && singleRecipe && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-orange-500 scrollbar-track-gray-100">
             <div className="relative">
@@ -507,7 +521,7 @@ const TaylorRecipeApp = () => {
                 <X className="w-6 h-6" />
               </button>
               <div className="absolute bottom-4 left-4 flex space-x-2">
-                <span className="bg-black bg-opacity-70 text-white text-sm px-3 py-1 rounded-full">{getDifficulty(selectedRecipe)}</span>
+                {/* <span className="bg-black bg-opacity-70 text-white text-sm px-3 py-1 rounded-full">{getDifficulty(selectedRecipe)}</span> */}
                 <span className="bg-black bg-opacity-70 text-white text-sm px-3 py-1 rounded-full">{getEstimatedTime(selectedRecipe)}</span>
               </div>
             </div>
@@ -534,7 +548,7 @@ const TaylorRecipeApp = () => {
                 <div className="bg-gray-50 p-4 rounded-lg text-center">
                   <Users className="w-6 h-6 text-green-500 mx-auto mb-2" />
                   <div className="font-semibold text-gray-900">Servings</div>
-                  <div className="text-sm text-gray-600">{getServings(selectedRecipe)} people</div>
+                  <div className="text-sm text-gray-600">4 People</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg text-center">
                   <ChefHat className="w-6 h-6 text-orange-500 mx-auto mb-2" />

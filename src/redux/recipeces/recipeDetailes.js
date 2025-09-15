@@ -7,9 +7,7 @@ import axios from "axios";
 export const recipeDetailesFetch = createAsyncThunk("getBymealId", async (mealId, { rejectWithValue }) => {
     try {
         const recipeDetailesData = await axios.get(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealId}`)
-        console.log(recipeDetailesData.data.meals, 'recipeDetailesData')
-        return recipeDetailesData.data.meals
-
+        return recipeDetailesData.data.meals[0]
     }
     catch (error) {
         console.log(error)
@@ -22,7 +20,7 @@ export const recipeDetailesFetch = createAsyncThunk("getBymealId", async (mealId
 const singleRecipesSlice = createSlice({
     name: "single/recipe",
     initialState: {
-        singleRecipe: [],
+        singleRecipe: {},
         singleLoading: false,
         singleError: ""
     },
