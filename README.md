@@ -43,6 +43,7 @@ Run the Application:Start the development server:
 npm start
 
 The app will be available at http://localhost:5173. or http://localhost:3000
+this deploye link :https://taylor-s-kitchen-project.vercel.app/
 
 
 Usage
